@@ -40,10 +40,12 @@ void debug_custom(void) {
 #ifdef FADER_ENABLE
     dprintf("Fader\n");
     dprintf("   Fader Enable: %s\n", YN(fader_config.enable));
+    dprintf("   Fader Mode: %d\n", fader_config.mode);
     dprintf("   Fader Reverse: %s\n", YN(fader_config.reverse));
     dprintf("   Fader Channel: %d\n", fader_config.channel);
     dprintf("   Fader CC: %d\n", fader_config.cc);
     dprintf("   Fader Value: %d\n", fader_get_val());
+    dprintf("   Fader Trigger: %d\n", fader_config.trigger);
 #endif
     dprintf("[END]\n");
 }

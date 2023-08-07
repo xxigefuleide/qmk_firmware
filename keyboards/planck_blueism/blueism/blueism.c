@@ -1,6 +1,7 @@
 // Copyright 2018-2022 weimao (@luantty2)
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "quantum.h"
+#include "config_blueism.h"
 #include "uart.h"
 #include "blueism.h"
 #include "ringbuffer.h"
@@ -33,11 +34,11 @@ void blueism_init(void) {
     ringBufferInit(&send_buffer, send_buff_data, sizeof(send_buff_data));
     uart_init(BLUEISM_UART_BAUDRATE);
 
-    setPinOutput(C14); //wakeup pin
-    writePinHigh(C14);
-    setPinInputHigh(B6); //sleep status read pin
-
-    setPinOutput(C13); //wakeup pin
+    setPinOutput(BLUEISM_WAKEUP_PIN);
+    writePinHigh(BLUEISM_WAKEUP_PIN);
+    setPinInputHigh(BLUEISM_SLEEP_STATUS_PIN);
+    setPinInput(VBUS_DETECT_PIN);
+    setPinInput(BAT_DETECT_PIN);
 }
 
 blueism_send_status_t blueism_send_cmd(uint8_t cmd, uint8_t *payload, uint8_t payload_len) {
@@ -147,14 +148,37 @@ void blueism_unpair() {
     }
 }
 
-void blueism_task(void) {
-
-    if(readPin(B6)==0){   //if is not sleeping
-         writePinHigh(C13);  //led off
-    }else{
-        writePinLow(C13) ;  //if is sleeping led on
+static inline bool blueism_sleep_status_check(void) {
+    if (readPin(BLUEISM_SLEEP_STATUS_PIN) == 0) {
+        return false;
+    } else {
+        return true;
     }
+}
 
+static inline void blueism_wakeup(void) {
+    writePinLow(BLUEISM_WAKEUP_PIN);
+    matrix_io_delay();
+    writePinHigh(BLUEISM_WAKEUP_PIN);
+}
+
+bool vbus_detect(void) {
+    if (readPin(VBUS_DETECT_PIN) == 0) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+bool bat_detect(void) {
+    if (readPin(BAT_DETECT_PIN) == 0) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+void blueism_task(void) {
     uint32_t timer_now = timer_read();
     if (!ringBufferEmpty(&send_buffer) && (TIMER_DIFF_32(timer_now, send_timer) >= BLUEISM_UART_SEND_INTERVAL_MS)) {
         if (ringBufferLen(&send_buffer) % BLUEISM_UART_PACKET_LEN != 0) {
@@ -163,12 +187,10 @@ void blueism_task(void) {
         } else {
             uint8_t data[BLUEISM_UART_PACKET_LEN];
             ringBufferGetMultiple(&send_buffer, data, sizeof(data));
-            if (readPin(B6)==0) {
+            if (!blueism_sleep_status_check()) {
                 uart_transmit(data, sizeof(data));
             } else {
-                writePinLow(C14);
-                matrix_io_delay();
-                writePinHigh(C14);
+                blueism_wakeup();
                 uart_transmit(data, sizeof(data));
             }
         }

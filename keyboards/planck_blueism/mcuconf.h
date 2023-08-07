@@ -4,5 +4,11 @@
 
 #include_next <mcuconf.h>
 
+#undef STM32_PLLM_VALUE
+#define STM32_PLLM_VALUE 2
+
+#undef STM32_PLLN_VALUE
+#define STM32_PLLN_VALUE 12
+
 #undef STM32_SERIAL_USE_USART1
 #define STM32_SERIAL_USE_USART1 TRUE

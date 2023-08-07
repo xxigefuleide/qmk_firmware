@@ -8,8 +8,8 @@
         "rgb_matrix": true
     },
     "usb": {
-        "device_version": "1.0.1",
-        "pid": "0x4457",
+        "device_version": "1.1.0",
+        "pid": "0x4467",
         "vid": "0x484C"
     },
     "layouts": {

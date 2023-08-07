@@ -53,6 +53,9 @@ void matrix_scan_kb(void) {
 #endif
 #ifdef FADER_ENABLE
     fader_run(&midi_device);
+    fader_custom_singleshot_handler();
+    fader_custom_continuous_handler();
+    fader_custom_layer_handler();
 #endif
 #ifdef RGB_MATRIX_ENABLE
     if (!fade_completed) {
@@ -91,11 +94,11 @@ bool rgb_matrix_indicators_advanced_kb(uint8_t led_min, uint8_t led_max) {
     if (host_keyboard_led_state().caps_lock) {
         HSV hsv = rgb_matrix_get_hsv();
         RGB rgb;
-        if(hsv.h % 191>0){
-            hsv.h-=191;
+        if (hsv.h % 191 > 0) {
+            hsv.h -= 191;
         }
-        hsv.h+=64;
-        rgb   = hsv_to_rgb(hsv);
+        hsv.h += 64;
+        rgb = hsv_to_rgb(hsv);
         for (uint8_t i = led_min; i < led_max; i++) {
             if ((g_led_config.flags[i] >> 3) & 1) {
                 rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
@@ -109,10 +112,16 @@ bool rgb_matrix_indicators_advanced_kb(uint8_t led_min, uint8_t led_max) {
 #ifdef VIA_ENABLE
 #    ifdef FADER_ENABLE
 enum via_fader_value {
-    id_fader_enable  = 1,
-    id_fader_reverse = 2,
-    id_fader_channel = 3,
-    id_fader_cc      = 4,
+    id_fader_enable    = 1,
+    id_fader_mode      = 2,
+    id_fader_reverse   = 3,
+    id_fader_channel   = 4,
+    id_fader_cc        = 5,
+    id_fader_trigger   = 6,
+    id_fader_extra_kc0 = 7,
+    id_fader_extra_kc1 = 8,
+    id_fader_layer0    = 9,
+    id_fader_layer1    = 10,
 };
 
 void fader_config_set_value(uint8_t *data) {
@@ -123,6 +132,9 @@ void fader_config_set_value(uint8_t *data) {
         case id_fader_enable:
             fader_config.enable = *value_data;
             break;
+        case id_fader_mode:
+            fader_config.mode = *value_data;
+            break;
         case id_fader_reverse:
             fader_config.reverse = *value_data;
             break;
@@ -131,6 +143,21 @@ void fader_config_set_value(uint8_t *data) {
             break;
         case id_fader_cc:
             fader_config.cc = *value_data;
+            break;
+        case id_fader_trigger:
+            fader_config.trigger = *value_data;
+            break;
+        case id_fader_extra_kc0:
+            fader_extra_config.kc_0 = value_data[0] << 8 | value_data[1];
+            break;
+        case id_fader_extra_kc1:
+            fader_extra_config.kc_1 = value_data[0] << 8 | value_data[1];
+            break;
+        case id_fader_layer0:
+            fader_config.layer_0 = *value_data;
+            break;
+        case id_fader_layer1:
+            fader_config.layer_1 = *value_data;
             break;
     }
 }
@@ -143,6 +170,9 @@ void fader_config_get_value(uint8_t *data) {
         case id_fader_enable:
             value_data[0] = fader_config.enable ? 1 : 0;
             break;
+        case id_fader_mode:
+            value_data[0] = fader_config.mode ? 1 : 0;
+            break;
         case id_fader_reverse:
             value_data[0] = fader_config.reverse ? 1 : 0;
             break;
@@ -152,11 +182,29 @@ void fader_config_get_value(uint8_t *data) {
         case id_fader_cc:
             value_data[0] = fader_config.cc;
             break;
+        case id_fader_trigger:
+            value_data[0] = fader_config.trigger;
+            break;
+        case id_fader_extra_kc0:
+            value_data[0] = fader_extra_config.kc_0 >> 8;
+            value_data[1] = fader_extra_config.kc_0 & 0xFF;
+            break;
+        case id_fader_extra_kc1:
+            value_data[0] = fader_extra_config.kc_1 >> 8;
+            value_data[1] = fader_extra_config.kc_1 & 0xFF;
+            break;
+        case id_fader_layer0:
+            value_data[0] = fader_config.layer_0;
+            break;
+        case id_fader_layer1:
+            value_data[0] = fader_config.layer_1;
+            break;
     }
 }
 
 void fader_config_save(void) {
     eeconfig_update_fader();
+    eeconfig_update_fader_extra();
 }
 
 void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
