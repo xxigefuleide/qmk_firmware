@@ -18,7 +18,11 @@
         "xstddef": "c",
         "type_traits": "c",
         "utility": "c",
-        "ranges": "c"
+        "ranges": "c",
+        "array": "c",
+        "string": "c",
+        "string_view": "c",
+        "vector": "c"
     },
     "[markdown]": {
         "editor.trimAutoWhitespace": false,
@@ -30,5 +34,6 @@
     },
     "clangd.arguments": [
         "--header-insertion=never"
-    ]
+    ],
+    "cmake.sourceDirectory": "/Users/bilibiliiiii/Documents/qmk_firmware/lib/pico-sdk/src/common/pico_sync"
 }
